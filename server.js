@@ -12,7 +12,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // 2. API Routes
-// These must stay ABOVE the static/catch-all routes
 app.use('/api', toolRoutes);
 
 // 3. Production / Railway Setup
@@ -23,17 +22,18 @@ if (process.env.NODE_ENV === 'production') {
     app.use(express.static(distPath));
 
     /**
-     * THE MASTER FIX FOR YOUR PathError:
-     * In Node v22/Express environments using path-to-regexp v8+,
-     * you MUST use a named parameter for wildcards.
-     * '/:path*' tells the server to match any path and name it "path".
+     * FINAL FIX FOR PathError:
+     * Instead of using a string like '*' or '/:path*', we use a 
+     * Regex Literal /^(?!\/api).+/
+     * This tells Express: "Match anything that DOES NOT start with /api"
+     * Since it's a regex literal, path-to-regexp will not attempt to parse it as a string.
      */
-    app.get('/:path*', (req, res) => {
+    app.get(/^(?!\/api).+/, (req, res) => {
         res.sendFile(path.join(distPath, 'index.html'));
     });
 } else {
     app.get('/', (req, res) => {
-        res.send("Backend is running. Start the frontend with 'npm run dev'.");
+        res.send("Backend is running.");
     });
 }
 
